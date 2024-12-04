@@ -120,9 +120,7 @@ export class AccountStore {
     }
 
     @computed get userSubscription() {
-        return this.isPaidUser || this.isPastDueUser
-            ? this.user.subscription
-            : undefined;
+        return true
     }
 
     private updateUser = flow(function * (this: AccountStore) {
