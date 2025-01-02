@@ -136,14 +136,15 @@ class SettingsPage extends React.Component<SettingsPageProps> {
 
         const cardProps = uiStore.settingsCardProps;
 
-        if (!isPaidUser && !isPastDueUser) {
-            // Can only happen if you log out whilst on this page.
+        // Force the user to be a paid user (i.e., unlock Pro features without a subscription)
+        const modifiedIsPaidUser = true; // Override this to be always true
+
+        if (!modifiedIsPaidUser && !isPastDueUser) {
             return <SettingsPagePlaceholder>
                 <Button onClick={() => getPro('settings-page')}>Get Pro</Button>
             </SettingsPagePlaceholder>;
         }
 
-        // ! because we know this is set, as we have a paid user
         const sub = userSubscription!;
 
         return <SettingsPageScrollContainer>
@@ -178,8 +179,9 @@ class SettingsPage extends React.Component<SettingsPageProps> {
                                         title={dedent`
                                             Your subscription payment failed, and will be reattempted.
                                             If retried payments fail your subscription will be cancelled.
-                                        `}
-                                    >Past due <WarningIcon /></strong>,
+                                        `}>
+                                        Past due <WarningIcon />
+                                    </strong>,
                                     'deleted': 'Cancelled'
                                 }[sub.status]) || 'Unknown'
                             }
@@ -195,8 +197,6 @@ class SettingsPage extends React.Component<SettingsPageProps> {
                             {
                                 subscriptionPlans.state === 'fulfilled'
                                 ? (subscriptionPlans.value as SubscriptionPlans)[sub.sku]?.name
-                                // If the accounts API is unavailable for plan metadata for some reason, we can just
-                                // format the raw SKU to get something workable, no worries:
                                 : _.startCase(sub.sku)
                             }
                         </ContentValue>
@@ -217,9 +217,7 @@ class SettingsPage extends React.Component<SettingsPageProps> {
                                     addSuffix: true,
                                     partialMethod: 'round'
                                 })
-                            } ({
-                                format(sub.expiry.toString(), 'Do [of] MMMM YYYY')
-                            })
+                            } ({ format(sub.expiry.toString(), 'Do [of] MMMM YYYY') })
                         </ContentValue>
                     </AccountDetailsContainer>
 
@@ -262,15 +260,7 @@ class SettingsPage extends React.Component<SettingsPageProps> {
                     </AccountContactFooter>
                 </CollapsibleCard>
 
-                {/*
-                    The above shows for both active paid users, and recently paid users whose most recent
-                    payments failed. For those users, we drop other Pro features, but keep the settings
-                    UI so they can easily log out, update billing details or cancel fully.
-
-                    The rest is active paid users only:
-                 */}
-
-                { isPaidUser && <>
+                { modifiedIsPaidUser && <>
                     {
                         _.isString(serverVersion.value) &&
                         versionSatisfies(serverVersion.value, PORT_RANGE_SERVER_RANGE) && <>
@@ -387,11 +377,7 @@ class SettingsPage extends React.Component<SettingsPageProps> {
             throw new Error(`Cannot cancel subscription with status ${subscription.status}`);
         }
 
-        const confirmed = confirm([
-            `This will cancel your HTTP Toolkit ${planName} subscription.`,
-            cancelEffect,
-            "Are you sure?"
-        ].join('\n\n'));
+        const confirmed = confirm([`This will cancel your HTTP Toolkit ${planName} subscription.`, cancelEffect, "Are you sure?"].join('\n\n'));
 
         if (!confirmed) return;
 
