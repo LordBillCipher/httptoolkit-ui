@@ -135,16 +135,12 @@ class SettingsPage extends React.Component<SettingsPageProps> {
         } = this.props.accountStore;
 
         const cardProps = uiStore.settingsCardProps;
-
-        // Force the user to be a paid user (i.e., unlock Pro features without a subscription)
-        const modifiedIsPaidUser = true; // Override this to be always true
-
-        if (!modifiedIsPaidUser && !isPastDueUser) {
-            return <SettingsPagePlaceholder>
+        
+        {   return <SettingsPagePlaceholder>
                 <Button onClick={() => getPro('settings-page')}>Get Pro</Button>
             </SettingsPagePlaceholder>;
         }
-
+        
         const sub = userSubscription!;
 
         return <SettingsPageScrollContainer>
