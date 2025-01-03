@@ -120,108 +120,141 @@ const AccountUpdateSpinner = styled(Icon).attrs(() => ({
 @observer
 class SettingsPage extends React.Component<SettingsPageProps> {
 
-render() {
-    const { uiStore } = this.props;
-    const {
-        userEmail,
-        userSubscription,
-        subscriptionPlans,
-        isAccountUpdateInProcess,
-        canManageSubscription,
-        logOut
-    } = this.props.accountStore;
+    render() {
+        const { uiStore } = this.props;
+        
+        // Mocking the value of `isPaidUser` to always be true
+        const isPaidUser = true; // Override here
 
-    const cardProps = uiStore.settingsCardProps;
+        const {
+            isPastDueUser,
+            userEmail,
+            userSubscription,
+            subscriptionPlans,
+            isAccountUpdateInProcess,
+            getPro,
+            canManageSubscription,
+            logOut
+        } = this.props.accountStore;
 
-    const sub = userSubscription!; // Subscription is always assumed to be available
+        const cardProps = uiStore.settingsCardProps;
 
-    return (
-        <SettingsPageScrollContainer>
+        if (!isPaidUser && !isPastDueUser) {
+            // Can only happen if you log out whilst on this page.
+            return <SettingsPagePlaceholder>
+                <Button onClick={() => getPro('settings-page')}>Get Pro</Button>
+            </SettingsPagePlaceholder>;
+        }
+
+        // ! because we know this is set, as we have a paid user
+        const sub = userSubscription!;
+
+        return <SettingsPageScrollContainer>
             <SettingPageContainer>
                 <SettingsHeading>Settings</SettingsHeading>
 
                 <CollapsibleCard {...cardProps.account}>
                     <header>
-                        <CollapsibleCardHeading onCollapseToggled={cardProps.account.onCollapseToggled}>
+                        <CollapsibleCardHeading onCollapseToggled={
+                            cardProps.account.onCollapseToggled
+                        }>
                             Account
                         </CollapsibleCardHeading>
                     </header>
                     <AccountDetailsContainer>
-                        <ContentLabel>Account email</ContentLabel>
-                        <ContentValue>{userEmail}</ContentValue>
-
-                        <ContentLabel>Subscription status</ContentLabel>
+                        <ContentLabel>
+                            Account email
+                        </ContentLabel>
                         <ContentValue>
-                            {({
-                                'active': 'Active',
-                                'trialing': 'Active (trial)',
-                                'past_due': (
-                                    <strong title={dedent`
-                                        Your subscription payment failed, and will be reattempted.
-                                        If retried payments fail your subscription will be cancelled.
-                                    `}>
-                                        Past due <WarningIcon />
-                                    </strong>
-                                ),
-                                'deleted': 'Cancelled'
-                            }[sub.status]) || 'Unknown'}
-                            {isAccountUpdateInProcess && <AccountUpdateSpinner />}
-                        </ContentValue>
-
-                        <ContentLabel>Subscription plan</ContentLabel>
-                        <ContentValue>
-                            {subscriptionPlans.state === 'fulfilled'
-                                ? (subscriptionPlans.value as SubscriptionPlans)[sub.sku]?.name
-                                : _.startCase(sub.sku)}
+                            { userEmail }
                         </ContentValue>
 
                         <ContentLabel>
-                            {({
-                                'active': 'Next renews',
-                                'trialing': 'Renews',
-                                'past_due': 'Next payment attempt',
-                                'deleted': 'Ends'
-                            }[sub.status]) || 'Current period ends'}
+                            Subscription status
                         </ContentLabel>
                         <ContentValue>
-                            {distanceInWordsStrict(new Date(), sub.expiry, {
-                                addSuffix: true,
-                                partialMethod: 'round'
-                            })} ({format(sub.expiry.toString(), 'Do [of] MMMM YYYY')})
+                            {
+                                ({
+                                    'active': 'Active',
+                                    'trialing': 'Active (trial)',
+                                    'past_due': <strong
+                                        title={dedent`
+                                            Your subscription payment failed, and will be reattempted.
+                                            If retried payments fail your subscription will be cancelled.
+                                        `}>
+                                        Past due <WarningIcon />
+                                    </strong>,
+                                    'deleted': 'Cancelled'
+                                }[sub.status]) || 'Unknown'
+                            }
+                            { isAccountUpdateInProcess &&
+                                <AccountUpdateSpinner />
+                            }
+                        </ContentValue>
+
+                        <ContentLabel>
+                            Subscription plan
+                        </ContentLabel>
+                        <ContentValue>
+                            {
+                                subscriptionPlans.state === 'fulfilled'
+                                ? (subscriptionPlans.value as SubscriptionPlans)[sub.sku]?.name
+                                : _.startCase(sub.sku)
+                            }
+                        </ContentValue>
+
+                        <ContentLabel>
+                            {
+                                ({
+                                    'active': 'Next renews',
+                                    'trialing': 'Renews',
+                                    'past_due': 'Next payment attempt',
+                                    'deleted': 'Ends',
+                                }[sub.status]) || 'Current period ends'
+                            }
+                        </ContentLabel>
+                        <ContentValue>
+                            {
+                                distanceInWordsStrict(new Date(), sub.expiry, {
+                                    addSuffix: true,
+                                    partialMethod: 'round'
+                                })
+                            } ({ format(sub.expiry.toString(), 'Do [of] MMMM YYYY') })
                         </ContentValue>
                     </AccountDetailsContainer>
 
                     <AccountControls>
-                        {sub.lastReceiptUrl && (
+                        { sub.lastReceiptUrl &&
                             <SettingsButtonLink
-                                href={sub.lastReceiptUrl}
-                                target="_blank"
-                                rel="noreferrer noopener"
+                                href={ sub.lastReceiptUrl }
+                                target='_blank'
+                                rel='noreferrer noopener'
                             >
                                 View latest invoice
                             </SettingsButtonLink>
-                        )}
-                        {canManageSubscription && (
-                            <>
-                                {sub.updateBillingDetailsUrl && (
-                                    <SettingsButtonLink
-                                        href={sub.updateBillingDetailsUrl}
-                                        target="_blank"
-                                        rel="noreferrer noopener"
-                                        highlight={sub.status === 'past_due'}
-                                    >
-                                        Update billing details
-                                    </SettingsButtonLink>
-                                )}
-                                <SettingsButton
-                                    onClick={this.confirmSubscriptionCancellation}
-                                    disabled={isAccountUpdateInProcess}
+                        }
+                        { canManageSubscription && <>
+
+                            { sub.updateBillingDetailsUrl &&
+                                <SettingsButtonLink
+                                    href={sub.updateBillingDetailsUrl}
+                                    target='_blank'
+                                    rel='noreferrer noopener'
+                                    highlight={sub.status === 'past_due'}
                                 >
-                                    Cancel subscription
-                                    {isAccountUpdateInProcess && <AccountUpdateSpinner />}
-                                </SettingsButton>
-                            </>
-                        )}
+                                    Update billing details
+                                </SettingsButtonLink>
+                            }
+                            <SettingsButton
+                                onClick={this.confirmSubscriptionCancellation}
+                                disabled={isAccountUpdateInProcess}
+                            >
+                                Cancel subscription
+                                { isAccountUpdateInProcess &&
+                                    <AccountUpdateSpinner />
+                                }
+                            </SettingsButton>
+                        </> }
                         <SettingsButton onClick={logOut}>Log out</SettingsButton>
                     </AccountControls>
 
@@ -230,83 +263,105 @@ render() {
                     </AccountContactFooter>
                 </CollapsibleCard>
 
-                {_.isString(serverVersion.value) &&
-                    versionSatisfies(serverVersion.value, PORT_RANGE_SERVER_RANGE) && (
-                        <>
+                { isPaidUser && <>
+
+                    {
+                        _.isString(serverVersion.value) &&
+                        versionSatisfies(serverVersion.value, PORT_RANGE_SERVER_RANGE) && <>
+
                             <ProxySettingsCard {...cardProps.proxy} />
                             <ConnectionSettingsCard {...cardProps.connection} />
+
                         </>
-                    )}
+                    }
 
-                <ApiSettingsCard {...cardProps.api} />
+                    <ApiSettingsCard {...cardProps.api} />
 
-                <CollapsibleCard {...cardProps.themes}>
-                    <header>
-                        <CollapsibleCardHeading onCollapseToggled={cardProps.themes.onCollapseToggled}>
-                            Themes
-                        </CollapsibleCardHeading>
-                    </header>
-                    <TabbedOptionsContainer>
-                        <TabsContainer
-                            onClick={async (value: ThemeName | 'automatic' | 'custom') => {
-                                if (value === 'custom') {
-                                    const themeFile = await uploadFile('text', ['.htktheme', '.htk-theme', '.json']);
-                                    if (!themeFile) return;
-                                    try {
-                                        const customTheme = uiStore.buildCustomTheme(themeFile);
-                                        uiStore.setTheme(customTheme);
-                                    } catch (e: any) {
-                                        alert(e.message || e);
+                    <CollapsibleCard {...cardProps.themes}>
+                        <header>
+                            <CollapsibleCardHeading onCollapseToggled={
+                                cardProps.themes.onCollapseToggled
+                            }>
+                                Themes
+                            </CollapsibleCardHeading>
+                        </header>
+                        <TabbedOptionsContainer>
+                            <TabsContainer
+                                onClick={async (value: ThemeName | 'automatic' | 'custom') => {
+                                    if (value === 'custom') {
+                                        const themeFile = await uploadFile('text', ['.htktheme', '.htk-theme', '.json']);
+                                        if (!themeFile) return;
+                                        try {
+                                            const customTheme = uiStore.buildCustomTheme(themeFile);
+                                            uiStore.setTheme(customTheme);
+                                        } catch (e: any) {
+                                            alert(e.message || e);
+                                        }
+                                    } else {
+                                        uiStore.setTheme(value);
                                     }
-                                } else {
-                                    uiStore.setTheme(value);
+                                }}
+                                isSelected={(value: ThemeName | 'automatic' | 'custom') =>
+                                    uiStore.themeName === value
                                 }
-                            }}
-                            isSelected={(value: ThemeName | 'automatic' | 'custom') =>
-                                uiStore.themeName === value
-                            }
-                        >
-                            <Tab icon="MagicWand" value="automatic">
-                                Automatic
-                            </Tab>
-                            <Tab icon="Sun" value="light">
-                                Light
-                            </Tab>
-                            <Tab icon="Moon" value="dark">
-                                Dark
-                            </Tab>
-                            <Tab icon="CircleHalf" value="high-contrast">
-                                High Contrast
-                            </Tab>
-                            <Tab icon="Swatches" value="custom">
-                                Custom
-                            </Tab>
-                        </TabsContainer>
-                        <ThemeColors>
-                            <ThemeColorBlock themeColor="mainColor" />
-                            <ThemeColorBlock themeColor="mainBackground" />
-                            <ThemeColorBlock themeColor="highlightColor" />
-                            <ThemeColorBlock themeColor="highlightBackground" />
-                            <ThemeColorBlock themeColor="primaryInputColor" />
-                            <ThemeColorBlock themeColor="primaryInputBackground" />
-                            <ThemeColorBlock themeColor="containerWatermark" />
-                            <ThemeColorBlock themeColor="containerBorder" />
-                            <ThemeColorBlock themeColor="mainLowlightBackground" />
-                            <ThemeColorBlock themeColor="containerBackground" />
-                        </ThemeColors>
+                            >
+                                <Tab
+                                    icon='MagicWand'
+                                    value='automatic'
+                                >
+                                    Automatic
+                                </Tab>
+                                <Tab
+                                    icon='Sun'
+                                    value='light'
+                                >
+                                    Light
+                                </Tab>
+                                <Tab
+                                    icon='Moon'
+                                    value='dark'
+                                >
+                                    Dark
+                                </Tab>
+                                <Tab
+                                    icon='CircleHalf'
+                                    value='high-contrast'
+                                >
+                                    High Contrast
+                                </Tab>
+                                <Tab
+                                    icon='Swatches'
+                                    value='custom'
+                                >
+                                    Custom
+                                </Tab>
+                            </TabsContainer>
+                            <ThemeColors>
+                                <ThemeColorBlock themeColor='mainColor' />
+                                <ThemeColorBlock themeColor='mainBackground' />
+                                <ThemeColorBlock themeColor='highlightColor' />
+                                <ThemeColorBlock themeColor='highlightBackground' />
+                                <ThemeColorBlock themeColor='primaryInputColor' />
+                                <ThemeColorBlock themeColor='primaryInputBackground' />
+                                <ThemeColorBlock themeColor='containerWatermark' />
+                                <ThemeColorBlock themeColor='containerBorder' />
+                                <ThemeColorBlock themeColor='mainLowlightBackground' />
+                                <ThemeColorBlock themeColor='containerBackground' />
+                            </ThemeColors>
 
-                        <EditorContainer>
-                            <ContainerSizedEditor
-                                contentId={null}
-                                language="html"
-                                defaultValue={amIUsingHtml}
-                            />
-                        </EditorContainer>
-                    </TabbedOptionsContainer>
-                </CollapsibleCard>
+                            <EditorContainer>
+                                <ContainerSizedEditor
+                                    contentId={null}
+                                    language='html'
+                                    defaultValue={amIUsingHtml}
+                                />
+                            </EditorContainer>
+                        </TabbedOptionsContainer>
+                    </CollapsibleCard>
+                </> }
             </SettingPageContainer>
-        </SettingsPageScrollContainer>
-    );
+        </SettingsPageScrollContainer>;
+    }
 
     confirmSubscriptionCancellation = () => {
         const subscription = this.props.accountStore.userSubscription;
@@ -328,11 +383,9 @@ render() {
             throw new Error(`Cannot cancel subscription with status ${subscription.status}`);
         }
 
-        const confirmed = confirm([
-            `This will cancel your HTTP Toolkit ${planName} subscription.`,
+        const confirmed = confirm([`This will cancel your HTTP Toolkit ${planName} subscription.`,
             cancelEffect,
-            "Are you sure?"
-        ].join('\n\n'));
+            "Are you sure?"].join('\n\n'));
 
         if (!confirmed) return;
 
@@ -347,4 +400,5 @@ const InjectedSettingsPage = SettingsPage as unknown as WithInjected<
     typeof SettingsPage,
     'accountStore' | 'uiStore'
 >;
+
 export { InjectedSettingsPage as SettingsPage };
