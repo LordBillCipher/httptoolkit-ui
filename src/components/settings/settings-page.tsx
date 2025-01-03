@@ -136,132 +136,126 @@ class SettingsPage extends React.Component<SettingsPageProps> {
 
         const cardProps = uiStore.settingsCardProps;
 
-        if (!isPaidUser && !isPastDueUser) {
-            // Can only happen if you log out whilst on this page.
-            return <SettingsPagePlaceholder>
-                <Button onClick={() => getPro('settings-page')}>Get Pro</Button>
-            </SettingsPagePlaceholder>;
-        }
+        // Removed the conditional check around `isPaidUser` content
 
-        // ! because we know this is set, as we have a paid user
-        const sub = userSubscription!;
+        const sub = userSubscription!; // Assuming `userSubscription` is always set
 
-        return <SettingsPageScrollContainer>
-            <SettingPageContainer>
-                <SettingsHeading>Settings</SettingsHeading>
+        return (
+            <SettingsPageScrollContainer>
+                <SettingPageContainer>
+                    <SettingsHeading>Settings</SettingsHeading>
 
-                <CollapsibleCard {...cardProps.account}>
-                    <header>
-                        <CollapsibleCardHeading onCollapseToggled={
-                            cardProps.account.onCollapseToggled
-                        }>
-                            Account
-                        </CollapsibleCardHeading>
-                    </header>
-                    <AccountDetailsContainer>
-                        <ContentLabel>
-                            Account email
-                        </ContentLabel>
-                        <ContentValue>
-                            { userEmail }
-                        </ContentValue>
+                    <CollapsibleCard {...cardProps.account}>
+                        <header>
+                            <CollapsibleCardHeading onCollapseToggled={
+                                cardProps.account.onCollapseToggled
+                            }>
+                                Account
+                            </CollapsibleCardHeading>
+                        </header>
+                        <AccountDetailsContainer>
+                            <ContentLabel>
+                                Account email
+                            </ContentLabel>
+                            <ContentValue>
+                                {userEmail}
+                            </ContentValue>
 
-                        <ContentLabel>
-                            Subscription status
-                        </ContentLabel>
-                        <ContentValue>
-                            {
-                                ({
-                                    'active': 'Active',
-                                    'trialing': 'Active (trial)',
-                                    'past_due': <strong
-                                        title={dedent`
-                                            Your subscription payment failed, and will be reattempted.
-                                            If retried payments fail your subscription will be cancelled.
-                                        `}
-                                    >Past due <WarningIcon /></strong>,
-                                    'deleted': 'Cancelled'
-                                }[sub.status]) || 'Unknown'
-                            }
-                            { isAccountUpdateInProcess &&
-                                <AccountUpdateSpinner />
-                            }
-                        </ContentValue>
-
-                        <ContentLabel>
-                            Subscription plan
-                        </ContentLabel>
-                        <ContentValue>
-                            {
-                                subscriptionPlans.state === 'fulfilled'
-                                ? (subscriptionPlans.value as SubscriptionPlans)[sub.sku]?.name
-                                // If the accounts API is unavailable for plan metadata for some reason, we can just
-                                // format the raw SKU to get something workable, no worries:
-                                : _.startCase(sub.sku)
-                            }
-                        </ContentValue>
-
-                        <ContentLabel>
-                            {
-                                ({
-                                    'active': 'Next renews',
-                                    'trialing': 'Renews',
-                                    'past_due': 'Next payment attempt',
-                                    'deleted': 'Ends',
-                                }[sub.status]) || 'Current period ends'
-                            }
-                        </ContentLabel>
-                        <ContentValue>
-                            {
-                                distanceInWordsStrict(new Date(), sub.expiry, {
-                                    addSuffix: true,
-                                    partialMethod: 'round'
-                                })
-                            } ({
-                                format(sub.expiry.toString(), 'Do [of] MMMM YYYY')
-                            })
-                        </ContentValue>
-                    </AccountDetailsContainer>
-
-                    <AccountControls>
-                        { sub.lastReceiptUrl &&
-                            <SettingsButtonLink
-                                href={ sub.lastReceiptUrl }
-                                target='_blank'
-                                rel='noreferrer noopener'
-                            >
-                                View latest invoice
-                            </SettingsButtonLink>
-                        }
-                        { canManageSubscription && <>
-                            { sub.updateBillingDetailsUrl &&
-                                <SettingsButtonLink
-                                    href={sub.updateBillingDetailsUrl}
-                                    target='_blank'
-                                    rel='noreferrer noopener'
-                                    highlight={sub.status === 'past_due'}
-                                >
-                                    Update billing details
-                                </SettingsButtonLink>
-                            }
-                            <SettingsButton
-                                onClick={this.confirmSubscriptionCancellation}
-                                disabled={isAccountUpdateInProcess}
-                            >
-                                Cancel subscription
-                                { isAccountUpdateInProcess &&
+                            <ContentLabel>
+                                Subscription status
+                            </ContentLabel>
+                            <ContentValue>
+                                {
+                                    ({
+                                        'active': 'Active',
+                                        'trialing': 'Active (trial)',
+                                        'past_due': <strong
+                                            title={dedent`
+                                                Your subscription payment failed, and will be reattempted.
+                                                If retried payments fail your subscription will be cancelled.
+                                            `}
+                                        >Past due <WarningIcon /></strong>,
+                                        'deleted': 'Cancelled'
+                                    }[sub.status]) || 'Unknown'
+                                }
+                                {isAccountUpdateInProcess &&
                                     <AccountUpdateSpinner />
                                 }
-                            </SettingsButton>
-                        </> }
-                        <SettingsButton onClick={logOut}>Log out</SettingsButton>
-                    </AccountControls>
+                            </ContentValue>
 
-                    <AccountContactFooter>
-                        Questions? Email <strong>billing@httptoolkit.com</strong>
-                    </AccountContactFooter>
-                </CollapsibleCard>
+                            <ContentLabel>
+                                Subscription plan
+                            </ContentLabel>
+                            <ContentValue>
+                                {
+                                    subscriptionPlans.state === 'fulfilled'
+                                        ? (subscriptionPlans.value as SubscriptionPlans)[sub.sku]?.name
+                                        : _.startCase(sub.sku) // Fallback if plans are unavailable
+                                }
+                            </ContentValue>
 
+                            <ContentLabel>
+                                {
+                                    ({
+                                        'active': 'Next renews',
+                                        'trialing': 'Renews',
+                                        'past_due': 'Next payment attempt',
+                                        'deleted': 'Ends',
+                                    }[sub.status]) || 'Current period ends'
+                                }
+                            </ContentLabel>
+                            <ContentValue>
+                                {
+                                    distanceInWordsStrict(new Date(), sub.expiry, {
+                                        addSuffix: true,
+                                        partialMethod: 'round'
+                                    })
+                                } ({
+                                    format(sub.expiry.toString(), 'Do [of] MMMM YYYY')
+                                })
+                            </ContentValue>
+                        </AccountDetailsContainer>
+
+                        <AccountControls>
+                            {sub.lastReceiptUrl &&
+                                <SettingsButtonLink
+                                    href={sub.lastReceiptUrl}
+                                    target='_blank'
+                                    rel='noreferrer noopener'
+                                >
+                                    View latest invoice
+                                </SettingsButtonLink>
+                            }
+                            {canManageSubscription && <>
+                                {sub.updateBillingDetailsUrl &&
+                                    <SettingsButtonLink
+                                        href={sub.updateBillingDetailsUrl}
+                                        target='_blank'
+                                        rel='noreferrer noopener'
+                                        highlight={sub.status === 'past_due'}
+                                    >
+                                        Update billing details
+                                    </SettingsButtonLink>
+                                }
+                                <SettingsButton
+                                    onClick={this.confirmSubscriptionCancellation}
+                                    disabled={isAccountUpdateInProcess}
+                                >
+                                    Cancel subscription
+                                    {isAccountUpdateInProcess &&
+                                        <AccountUpdateSpinner />
+                                    }
+                                </SettingsButton>
+                            </>}
+                            <SettingsButton onClick={logOut}>Log out</SettingsButton>
+                        </AccountControls>
+
+                        <AccountContactFooter>
+                            Questions? Email <strong>billing@httptoolkit.com</strong>
+                        </AccountContactFooter>
+                    </CollapsibleCard>
+
+                    {/* Removed the condition around the rest of the paid user content */}
                     {
                         _.isString(serverVersion.value) &&
                         versionSatisfies(serverVersion.value, PORT_RANGE_SERVER_RANGE) && <>
@@ -353,9 +347,9 @@ class SettingsPage extends React.Component<SettingsPageProps> {
                             </EditorContainer>
                         </TabbedOptionsContainer>
                     </CollapsibleCard>
-                </> }
-            </SettingPageContainer>
-        </SettingsPageScrollContainer>;
+                </SettingPageContainer>
+            </SettingsPageScrollContainer>
+        );
     }
 
     confirmSubscriptionCancellation = () => {
@@ -398,3 +392,4 @@ const InjectedSettingsPage = SettingsPage as unknown as WithInjected<
     'accountStore' | 'uiStore'
 >;
 export { InjectedSettingsPage as SettingsPage };
+
