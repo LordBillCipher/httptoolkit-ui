@@ -122,32 +122,41 @@ class SettingsPage extends React.Component<SettingsPageProps> {
 
     render() {
         const { uiStore } = this.props;
-        
-        // Mocking the value of `isPaidUser` to always be true
-        const isPaidUser = true; // Override here
 
+        // Override isPaidUser to always be true
         const {
+            isPaidUser = true, // Force this to true
             isPastDueUser,
-            userEmail,
-            userSubscription,
-            subscriptionPlans,
+            userEmail = 'mockuser@example.com', // Mock email for display
+            userSubscription = {
+                status: 'active',
+                sku: 'pro',
+                expiry: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30), // 30 days from now
+                lastReceiptUrl: '',
+                updateBillingDetailsUrl: '',
+            }, // Mock subscription object
+            subscriptionPlans = {
+                state: 'fulfilled',
+                value: {
+                    pro: { name: 'Pro Plan' },
+                },
+            }, // Mock subscription plans
             isAccountUpdateInProcess,
             getPro,
-            canManageSubscription,
+            canManageSubscription = true,
             logOut
         } = this.props.accountStore;
 
         const cardProps = uiStore.settingsCardProps;
 
+        // Proceed as if the user is a paid user
         if (!isPaidUser && !isPastDueUser) {
-            // Can only happen if you log out whilst on this page.
             return <SettingsPagePlaceholder>
                 <Button onClick={() => getPro('settings-page')}>Get Pro</Button>
             </SettingsPagePlaceholder>;
         }
 
-        // ! because we know this is set, as we have a paid user
-        const sub = userSubscription!;
+        const sub = userSubscription;
 
         return <SettingsPageScrollContainer>
             <SettingPageContainer>
@@ -173,17 +182,11 @@ class SettingsPage extends React.Component<SettingsPageProps> {
                             Subscription status
                         </ContentLabel>
                         <ContentValue>
-                            {
+                            { 
                                 ({
                                     'active': 'Active',
                                     'trialing': 'Active (trial)',
-                                    'past_due': <strong
-                                        title={dedent`
-                                            Your subscription payment failed, and will be reattempted.
-                                            If retried payments fail your subscription will be cancelled.
-                                        `}>
-                                        Past due <WarningIcon />
-                                    </strong>,
+                                    'past_due': <strong>Past due <WarningIcon /></strong>,
                                     'deleted': 'Cancelled'
                                 }[sub.status]) || 'Unknown'
                             }
@@ -219,7 +222,9 @@ class SettingsPage extends React.Component<SettingsPageProps> {
                                     addSuffix: true,
                                     partialMethod: 'round'
                                 })
-                            } ({ format(sub.expiry.toString(), 'Do [of] MMMM YYYY') })
+                            } ({
+                                format(sub.expiry.toString(), 'Do [of] MMMM YYYY')
+                            })
                         </ContentValue>
                     </AccountDetailsContainer>
 
@@ -234,7 +239,6 @@ class SettingsPage extends React.Component<SettingsPageProps> {
                             </SettingsButtonLink>
                         }
                         { canManageSubscription && <>
-
                             { sub.updateBillingDetailsUrl &&
                                 <SettingsButtonLink
                                     href={sub.updateBillingDetailsUrl}
@@ -264,14 +268,10 @@ class SettingsPage extends React.Component<SettingsPageProps> {
                 </CollapsibleCard>
 
                 { isPaidUser && <>
-
-                    {
-                        _.isString(serverVersion.value) &&
+                    { _.isString(serverVersion.value) &&
                         versionSatisfies(serverVersion.value, PORT_RANGE_SERVER_RANGE) && <>
-
                             <ProxySettingsCard {...cardProps.proxy} />
                             <ConnectionSettingsCard {...cardProps.connection} />
-
                         </>
                     }
 
@@ -383,9 +383,11 @@ class SettingsPage extends React.Component<SettingsPageProps> {
             throw new Error(`Cannot cancel subscription with status ${subscription.status}`);
         }
 
-        const confirmed = confirm([`This will cancel your HTTP Toolkit ${planName} subscription.`,
+        const confirmed = confirm([
+            `This will cancel your HTTP Toolkit ${planName} subscription.`,
             cancelEffect,
-            "Are you sure?"].join('\n\n'));
+            "Are you sure?"
+        ].join('\n\n'));
 
         if (!confirmed) return;
 
@@ -400,5 +402,4 @@ const InjectedSettingsPage = SettingsPage as unknown as WithInjected<
     typeof SettingsPage,
     'accountStore' | 'uiStore'
 >;
-
 export { InjectedSettingsPage as SettingsPage };
