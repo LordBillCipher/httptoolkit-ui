@@ -136,6 +136,13 @@ class SettingsPage extends React.Component<SettingsPageProps> {
 
         const cardProps = uiStore.settingsCardProps;
 
+        if (!isPaidUser && !isPastDueUser) {
+            // Can only happen if you log out whilst on this page.
+            return <SettingsPagePlaceholder>
+                <Button onClick={() => getPro('settings-page')}>Get Pro</Button>
+            </SettingsPagePlaceholder>;
+        }
+
         // ! because we know this is set, as we have a paid user
         const sub = userSubscription!;
 
@@ -255,15 +262,6 @@ class SettingsPage extends React.Component<SettingsPageProps> {
                     </AccountContactFooter>
                 </CollapsibleCard>
 
-                {/*
-                    The above shows for both active paid users, and recently paid users whose most recent
-                    payments failed. For those users, we drop other Pro features, but keep the settings
-                    UI so they can easily log out, update billing details or cancel fully.
-
-                    The rest is active paid users only:
-                 */}
-
-                { isPaidUser && <>
                     {
                         _.isString(serverVersion.value) &&
                         versionSatisfies(serverVersion.value, PORT_RANGE_SERVER_RANGE) && <>
