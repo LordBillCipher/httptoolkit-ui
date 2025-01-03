@@ -122,43 +122,19 @@ class SettingsPage extends React.Component<SettingsPageProps> {
 
     render() {
         const { uiStore } = this.props;
-
-        // Override isPaidUser to always be true
         const {
-            isPaidUser = true, // Force this to true
+            isPaidUser,
             isPastDueUser,
-            userEmail = 'mockuser@example.com', // Mock email for display
-            userSubscription = {
-                status: 'active',
-                sku: 'pro',
-                expiry: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30), // 30 days from now
-                lastReceiptUrl: '',
-                updateBillingDetailsUrl: '',
-            }, // Mock subscription object
-            subscriptionPlans = {
-                state: 'fulfilled',
-                value: {
-                    pro: { name: 'Pro Plan' },
-                },
-            }, // Mock subscription plans
+            userEmail,
+            userSubscription,
+            subscriptionPlans,
             isAccountUpdateInProcess,
             getPro,
-            canManageSubscription = true,
+            canManageSubscription,
             logOut
         } = this.props.accountStore;
 
-        const cardProps = uiStore.settingsCardProps;
-
-        // Proceed as if the user is a paid user
-        if (!isPaidUser && !isPastDueUser) {
-            return <SettingsPagePlaceholder>
-                <Button onClick={() => getPro('settings-page')}>Get Pro</Button>
-            </SettingsPagePlaceholder>;
-        }
-
-        const sub = userSubscription;
-
-        return <SettingsPageScrollContainer>
+        <SettingsPageScrollContainer>
             <SettingPageContainer>
                 <SettingsHeading>Settings</SettingsHeading>
 
@@ -182,11 +158,16 @@ class SettingsPage extends React.Component<SettingsPageProps> {
                             Subscription status
                         </ContentLabel>
                         <ContentValue>
-                            { 
+                            {
                                 ({
                                     'active': 'Active',
                                     'trialing': 'Active (trial)',
-                                    'past_due': <strong>Past due <WarningIcon /></strong>,
+                                    'past_due': <strong
+                                        title={dedent`
+                                            Your subscription payment failed, and will be reattempted.
+                                            If retried payments fail your subscription will be cancelled.
+                                        `}
+                                    >Past due <WarningIcon /></strong>,
                                     'deleted': 'Cancelled'
                                 }[sub.status]) || 'Unknown'
                             }
@@ -202,6 +183,8 @@ class SettingsPage extends React.Component<SettingsPageProps> {
                             {
                                 subscriptionPlans.state === 'fulfilled'
                                 ? (subscriptionPlans.value as SubscriptionPlans)[sub.sku]?.name
+                                // If the accounts API is unavailable for plan metadata for some reason, we can just
+                                // format the raw SKU to get something workable, no worries:
                                 : _.startCase(sub.sku)
                             }
                         </ContentValue>
@@ -267,8 +250,15 @@ class SettingsPage extends React.Component<SettingsPageProps> {
                     </AccountContactFooter>
                 </CollapsibleCard>
 
-                { isPaidUser && <>
-                    { _.isString(serverVersion.value) &&
+                {/*
+                    The above shows for both active paid users, and recently paid users whose most recent
+                    payments failed. For those users, we drop other Pro features, but keep the settings
+                    UI so they can easily log out, update billing details or cancel fully.
+
+                    The rest is active paid users only:
+                 */}
+
+                        _.isString(serverVersion.value) &&
                         versionSatisfies(serverVersion.value, PORT_RANGE_SERVER_RANGE) && <>
                             <ProxySettingsCard {...cardProps.proxy} />
                             <ConnectionSettingsCard {...cardProps.connection} />
